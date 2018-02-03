@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<title>Nextion Updater</title>
+		<script>
+			function getUrlVars() {
+				var vars = {};
+				var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+				vars[key] = value;
+				});
+				return vars;
+			}
+
+			function setReason() {
+				var reason = getUrlVars()["reason"];
+				document.getElementById("reason").innerHTML = decodeURIComponent(reason);
+			}
+		</script>
+	</head>
+	<body onLoad="setReason()">
+		<h2>Update failed</h2>
+		Reason: <strong><span id="reason"></span></strong>
+	</body>
+</html>
