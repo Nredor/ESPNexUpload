@@ -6,7 +6,7 @@
  * Modified to work with ESP8266 and SoftwareSerial
  * @author Ville Vilpas (psoden@gmail.com)
  * @date   2018/2/3
- * @version 0.1
+ * @version 0.1.0
  *
  * Original version (a part of https://github.com/itead/ITEADLIB_Arduino_Nextion)
  * @author  Chen Zengpeng (email:<zengpeng.chen@itead.cc>)

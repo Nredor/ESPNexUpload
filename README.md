@@ -6,3 +6,6 @@ See example. Library expects that given file path is found at ESP8266 flash memo
 
 ## Releases
 v0.1 - Working with basic functionality. 
+
+## Notices
+Original version is part of https://github.com/itead/ITEADLIB_Arduino_Nextion
