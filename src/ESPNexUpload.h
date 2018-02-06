@@ -6,7 +6,7 @@
  * Modified to work with ESP8266 and SoftwareSerial
  * @author Ville Vilpas (psoden@gmail.com)
  * @date   2018/2/3
- * @version 0.1.1
+ * @version 0.2.0
  *
  * Original version (a part of https://github.com/itead/ITEADLIB_Arduino_Nextion)
  * @author  Chen Zengpeng (email:<zengpeng.chen@itead.cc>)
@@ -130,12 +130,12 @@ private: /* methods */
      * @return the length of string buffer.
      *
      */   
-    uint16_t recvRetString(String &string, uint32_t timeout = 100,bool recv_flag = false);
+    uint16_t recvRetString(String &string, uint32_t timeout = 500,bool recv_flag = false);
     
 private: /* data */ 
     uint32_t _baudrate; /*nextion serail baudrate*/
     const char *_file_name; /*nextion tft file name*/
-    File _myFile; /*nextion ftf file*/
+    File _myFile; /*nextion tft file*/
     uint32_t _undownloadByte; /*undownload byte of tft file*/
     uint32_t _download_baudrate; /*download baudrate*/
     SoftwareSerial *nexSerial;

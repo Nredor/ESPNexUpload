@@ -6,7 +6,7 @@
  * Modified to work with ESP8266 and SoftwareSerial
  * @author Ville Vilpas (psoden@gmail.com)
  * @date   2018/2/3
- * @version 0.1.1
+ * @version 0.2.0
  *
  * Original version (a part of https://github.com/itead/ITEADLIB_Arduino_Nextion)
  * @author  Chen Zengpeng (email:<zengpeng.chen@itead.cc>)
@@ -32,7 +32,7 @@
 #include <FS.h>
 #include <SoftwareSerial.h>
 
-#define DEBUG_SERIAL_ENABLE
+//#define DEBUG_SERIAL_ENABLE
 
 #ifdef DEBUG_SERIAL_ENABLE
 #define dbSerialPrint(a)    Serial.print(a)
@@ -91,6 +91,7 @@ bool ESPNexUpload::upload(String &statusMessage)
 
 uint16_t ESPNexUpload::_getBaudrate(void)
 {
+    _baudrate = 0;
     uint32_t baudrate_array[7] = {115200,19200,9600,57600,38400,4800,2400};
     for(uint8_t i = 0; i < 7; i++)
     {
@@ -188,18 +189,14 @@ bool ESPNexUpload::_setDownloadBaudrate(uint32_t baudrate)
     String filesize_str = String(_undownloadByte,10);
     String baudrate_str = String(baudrate);
     cmd = "whmi-wri " + filesize_str + "," + baudrate_str + ",0";
-    
-    dbSerialPrintln(cmd);
 
     this->sendCommand("");
     this->sendCommand(cmd.c_str());
-    delay(50);
+
+    dbSerialPrintln("Changing baudrate...");
     nexSerial->begin(baudrate);
-
-    dbSerialPrintln("Baudrate changed");
-    delay(50);
-
-    this->recvRetString(string,500);  
+    
+    this->recvRetString(string);
 
     if(string.indexOf(0x05) != -1)
     { 
