@@ -53,7 +53,7 @@ public: /* methods */
      * @param file_name - tft file name. 
      * @param download_baudrate - set download baudrate.
      */
-    ESPNexUpload(const char *file_name,uint32_t download_baudrate, SoftwareSerial *softSerial);
+    ESPNexUpload(const char *file_name,uint32_t download_baudrate);
     
     /**
      * destructor. 
@@ -66,8 +66,8 @@ public: /* methods */
      *
      * @return true if success, false for failure.
      */
+	String statusMessage = "";
     bool upload();
-    bool upload(String &statusMessage);
 
 private: /* methods */
 
@@ -138,7 +138,6 @@ private: /* data */
     File _myFile; /*nextion tft file*/
     uint32_t _undownloadByte; /*undownload byte of tft file*/
     uint32_t _download_baudrate; /*download baudrate*/
-    SoftwareSerial *nexSerial;
 };
 /**
  * @}
