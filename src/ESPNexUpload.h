@@ -31,8 +31,7 @@
 #ifndef __ESPNEXUPLOAD_H__
 #define __ESPNEXUPLOAD_H__
 #include <Arduino.h>
-#include <FS.h>
-#include <SoftwareSerial.h>
+#include <StreamString.h>
 
 /**
  * @addtogroup CoreAPI 
@@ -53,7 +52,7 @@ public: /* methods */
      * @param file_name - tft file name. 
      * @param download_baudrate - set download baudrate.
      */
-    ESPNexUpload(const char *file_name,uint32_t download_baudrate);
+    ESPNexUpload(Stream &file_name, uint32_t file_size, uint32_t download_baudrate);
     
     /**
      * destructor. 
@@ -133,11 +132,11 @@ private: /* methods */
     uint16_t recvRetString(String &string, uint32_t timeout = 500,bool recv_flag = false);
     
 private: /* data */ 
-    uint32_t _baudrate; /*nextion serail baudrate*/
-    const char *_file_name; /*nextion tft file name*/
-    File _myFile; /*nextion tft file*/
-    uint32_t _undownloadByte; /*undownload byte of tft file*/
-    uint32_t _download_baudrate; /*download baudrate*/
+    uint32_t _baudrate; 			/*nextion serail baudrate*/
+    const char *_file_name; 		/*nextion tft file name*/
+    Stream *_myFile; 				/*nextion tft file*/
+    uint32_t _undownloadByte; 		/*undownload byte of tft file*/
+    uint32_t _download_baudrate; 	/*download baudrate*/
 };
 /**
  * @}
