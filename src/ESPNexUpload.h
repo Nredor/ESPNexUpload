@@ -52,7 +52,7 @@ public: /* methods */
      * @param file_name - tft file name. 
      * @param download_baudrate - set download baudrate.
      */
-    ESPNexUpload(Stream &file_name, uint32_t file_size, uint32_t download_baudrate);
+    ESPNexUpload(Stream &file, uint32_t file_size, uint32_t download_baudrate);
     
     /**
      * destructor. 
