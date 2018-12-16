@@ -28,36 +28,60 @@
  *
  */
 
+//#define DEBUG_SERIAL_ENABLE
 #include "ESPNexUpload.h"
 #include <FS.h>
-#include <SoftwareSerial.h>
 
-//#define DEBUG_SERIAL_ENABLE
 
-#ifdef DEBUG_SERIAL_ENABLE
-#define dbSerialPrint(a)    Serial.print(a)
-#define dbSerialPrintln(a)  Serial.println(a)
-#define dbSerialBegin(a)    Serial.begin(a)
-#else
-#define dbSerialPrint(a)    do{}while(0)
-#define dbSerialPrintln(a)  do{}while(0)
-#define dbSerialBegin(a)    do{}while(0)
+#if defined ESP8266
+
+	#include <SoftwareSerial.h>
+	
+	#ifndef NEXT_RX
+		#define NEXT_RX 14	// Nextion RX pin | Default 14 / D5
+		#define NEXT_TX 12	// Nextion TX pin | Default 12 / D6
+	#endif
+	#ifndef nexSerial
+		SoftwareSerial softSerial(NEXT_RX, NEXT_TX);
+		#define nexSerial softSerial
+		#define nexSerialBegin(a) nexSerial.begin(a)
+	#endif
+	
+#elif defined ESP32
+	
+	#ifndef NEXT_RX
+		#define NEXT_RX 14	// Nextion RX pin | Default 16
+		#define NEXT_TX 12	// Nextion TX pin | Default 17
+	#endif
+	#ifndef nexSerial
+		#define nexSerial Serial2
+		#define nexSerialBegin(a) nexSerial.begin(a, SERIAL_8N1, NEXT_RX, NEXT_TX)
+	#endif
+	
 #endif
 
 
-ESPNexUpload::ESPNexUpload(const char *file_name,uint32_t download_baudrate, SoftwareSerial *softSerial)
+#ifdef DEBUG_SERIAL_ENABLE
+    #define dbSerialPrint(a)    Serial.print(a)
+    #define dbSerialPrintln(a)  Serial.println(a)
+    #define dbSerialBegin(a)    Serial.begin(a)
+#else
+    #define dbSerialPrint(a)    do{}while(0)
+    #define dbSerialPrintln(a)  do{}while(0)
+    #define dbSerialBegin(a)    do{}while(0)
+#endif
+
+
+
+ESPNexUpload::ESPNexUpload(const char *file_name, uint32_t file_size, uint32_t download_baudrate)
 {
-    _file_name = file_name; 
-    _download_baudrate = download_baudrate;
-    nexSerial = softSerial;
+    _file_name          = file_name; 
+	_undownloadByte 	= file_size;
+    _download_baudrate 	= download_baudrate;
 }
 
-bool ESPNexUpload::upload(void) {
-    String temp = "";
-    return this->upload(temp);
-}
 
-bool ESPNexUpload::upload(String &statusMessage)
+bool ESPNexUpload::upload()
 {
     dbSerialBegin(115200);
     if(!_checkFile())
@@ -123,7 +147,7 @@ bool ESPNexUpload::_checkFile(void)
 bool ESPNexUpload::_searchBaudrate(uint32_t baudrate)
 {
     String string = String("");  
-    nexSerial->begin(baudrate);
+    nexSerialBegin(baudrate);
     this->sendCommand("");
     this->sendCommand("connect");
     this->recvRetString(string);  
@@ -136,15 +160,15 @@ bool ESPNexUpload::_searchBaudrate(uint32_t baudrate)
 
 void ESPNexUpload::sendCommand(const char* cmd)
 {
-    while (nexSerial->available())
+    while (nexSerial.available())
     {
-        nexSerial->read();
+        nexSerial.read();
     }
 
-    nexSerial->print(cmd);
-    nexSerial->write(0xFF);
-    nexSerial->write(0xFF);
-    nexSerial->write(0xFF);
+    nexSerial.print(cmd);
+    nexSerial.write(0xFF);
+    nexSerial.write(0xFF);
+    nexSerial.write(0xFF);
 }
 
 uint16_t ESPNexUpload::recvRetString(String &string, uint32_t timeout,bool recv_flag)
@@ -156,9 +180,9 @@ uint16_t ESPNexUpload::recvRetString(String &string, uint32_t timeout,bool recv_
     start = millis();
     while (millis() - start <= timeout)
     {
-        while (nexSerial->available())
+        while (nexSerial.available())
         {
-            c = nexSerial->read(); 
+            c = nexSerial.read(); 
             if(c == 0)
             {
                 continue;
@@ -194,7 +218,7 @@ bool ESPNexUpload::_setDownloadBaudrate(uint32_t baudrate)
     this->sendCommand(cmd.c_str());
 
     dbSerialPrintln("Changing baudrate...");
-    nexSerial->begin(baudrate);
+    nexSerialBegin(baudrate);
     
     this->recvRetString(string);
 
@@ -224,7 +248,7 @@ bool ESPNexUpload::_downloadTftFile(void)
                 if(j <= last_send_num)
                 {
                     c = _myFile.read();
-                    nexSerial->write(c);
+                    nexSerial.write(c);
                 }
                 else
                 {
@@ -238,7 +262,7 @@ bool ESPNexUpload::_downloadTftFile(void)
             for(uint16_t i = 1; i <= 4096; i++)
             {
                 c = _myFile.read();
-                nexSerial->write(c);
+                nexSerial.write(c);
             }
         }
         this->recvRetString(string,500,true);  
