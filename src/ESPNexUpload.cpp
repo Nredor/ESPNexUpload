@@ -82,6 +82,9 @@ ESPNexUpload::ESPNexUpload(Stream &file, uint32_t file_size, uint32_t download_b
 
 bool ESPNexUpload::upload()
 {
+    #if defined ESP8266
+        yield();
+    #endif
     dbSerialBegin(115200);
 
     if(_getBaudrate() == 0){
@@ -124,6 +127,9 @@ uint16_t ESPNexUpload::_getBaudrate(void)
 
 bool ESPNexUpload::_searchBaudrate(uint32_t baudrate)
 {
+    #if defined ESP8266
+        yield();
+    #endif
     String string = String("");  
     nexSerialBegin(baudrate);
 	
@@ -139,6 +145,9 @@ bool ESPNexUpload::_searchBaudrate(uint32_t baudrate)
 
 void ESPNexUpload::sendCommand(const char* cmd)
 {
+    #if defined ESP8266
+        yield();
+    #endif
     while (nexSerial.available())
     {
         nexSerial.read();
@@ -186,6 +195,9 @@ uint16_t ESPNexUpload::recvRetString(String &string, uint32_t timeout,bool recv_
 
 bool ESPNexUpload::_setDownloadBaudrate(uint32_t baudrate)
 {
+    #if defined ESP8266
+        yield();
+    #endif
     String string = String(""); 
     String cmd = String("");
     
@@ -193,14 +205,16 @@ bool ESPNexUpload::_setDownloadBaudrate(uint32_t baudrate)
     String baudrate_str = String(baudrate);
     cmd = "whmi-wri " + filesize_str + "," + baudrate_str + ",0";
 
+    dbSerialPrintln(cmd);
     this->sendCommand("");
     this->sendCommand(cmd.c_str());
+    delay(50);
 
-    dbSerialPrintln("Changing baudrate...");
     nexSerialBegin(baudrate);
-    
-    this->recvRetString(string);
+    dbSerialPrintln("Changing baudrate...");
+    dbSerialPrintln(baudrate);
 
+    this->recvRetString(string, 500);
     if(string.indexOf(0x05) != -1)
     { 
         return 1;
@@ -210,6 +224,9 @@ bool ESPNexUpload::_setDownloadBaudrate(uint32_t baudrate)
 
 bool ESPNexUpload::_downloadTftFile(void)
 {
+    #if defined ESP8266
+        yield();
+    #endif
     uint8_t c;
     uint16_t send_timer = 0;
     uint16_t last_send_num = 0;
@@ -255,6 +272,19 @@ bool ESPNexUpload::_downloadTftFile(void)
         }
          --send_timer;
     }
+	
+    // wait for the nextion to finish internal processes
+    delay(1600);
+
+    // soft reset nextion device
+    nexSerial.print("rest");
+    nexSerial.write(0xFF);
+    nexSerial.write(0xFF);
+    nexSerial.write(0xFF);
+	
+    // end Serial connection
+    nexSerial.end();
+	
     return true;  
 }
 
