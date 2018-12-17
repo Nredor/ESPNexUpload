@@ -30,7 +30,6 @@
 
 //#define DEBUG_SERIAL_ENABLE
 #include "ESPNexUpload.h"
-#include <FS.h>
 
 
 #if defined ESP8266
@@ -73,10 +72,10 @@
 
 
 
-ESPNexUpload::ESPNexUpload(const char *file_name, uint32_t file_size, uint32_t download_baudrate)
+ESPNexUpload::ESPNexUpload(Stream &file, uint32_t file_size, uint32_t download_baudrate)
 {
-    _file_name          = file_name; 
-	_undownloadByte 	= file_size;
+    _myFile          	= &file; 
+    _undownloadByte 	= file_size;
     _download_baudrate 	= download_baudrate;
 }
 
@@ -84,32 +83,25 @@ ESPNexUpload::ESPNexUpload(const char *file_name, uint32_t file_size, uint32_t d
 bool ESPNexUpload::upload()
 {
     dbSerialBegin(115200);
-    if(!_checkFile())
-    {
-        dbSerialPrintln("checkFile error");
-        statusMessage = "checkFile error";
-        return false;
-    }
-    if(_getBaudrate() == 0)
-    {
-        dbSerialPrintln("get baudrate error");
+
+    if(_getBaudrate() == 0){
         statusMessage = "get baudrate error";
+        dbSerialPrintln(statusMessage);
         return false;
     }
-    if(!_setDownloadBaudrate(_download_baudrate))
-    {
-        dbSerialPrintln("modify baudrate error");
+    if(!_setDownloadBaudrate(_download_baudrate)){
         statusMessage = "modifybaudrate error";
+        dbSerialPrintln(statusMessage);
         return false;
     }
-    if(!_downloadTftFile())
-    {
-        dbSerialPrintln("download file error");
+    if(!_downloadTftFile()){
         statusMessage = "download file error";
+        dbSerialPrintln(statusMessage);
         return false;
     }
-    dbSerialPrintln("download ok\r\n");
+
     statusMessage = "download ok";
+    dbSerialPrintln(statusMessage + "\r\n");
     return true;
 }
 
@@ -129,25 +121,12 @@ uint16_t ESPNexUpload::_getBaudrate(void)
     return _baudrate;
 }
 
-bool ESPNexUpload::_checkFile(void)
-{
-    if (SPIFFS.exists(_file_name)) { 
-        _myFile = SPIFFS.open(_file_name, "r");                   
-        dbSerialPrintln("file found");
-        
-        _undownloadByte = _myFile.size();
-        dbSerialPrintln("file size is:");
-        dbSerialPrintln(_undownloadByte);
-        dbSerialPrintln("check file ok");
-        return 1;
-    }
-    return 0;
-}
 
 bool ESPNexUpload::_searchBaudrate(uint32_t baudrate)
 {
     String string = String("");  
     nexSerialBegin(baudrate);
+	
     this->sendCommand("");
     this->sendCommand("connect");
     this->recvRetString(string);  
@@ -247,7 +226,7 @@ bool ESPNexUpload::_downloadTftFile(void)
             {
                 if(j <= last_send_num)
                 {
-                    c = _myFile.read();
+                    c = _myFile->read();
                     nexSerial.write(c);
                 }
                 else
@@ -261,7 +240,7 @@ bool ESPNexUpload::_downloadTftFile(void)
         {
             for(uint16_t i = 1; i <= 4096; i++)
             {
-                c = _myFile.read();
+                c = _myFile->read();
                 nexSerial.write(c);
             }
         }
