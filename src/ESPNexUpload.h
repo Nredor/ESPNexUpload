@@ -77,13 +77,6 @@ private: /* methods */
      *
      */
     uint16_t _getBaudrate(void);
-    
-    /*
-     * check tft file.
-     *
-     * @return true if success, false for failure. 
-     */
-    bool _checkFile(void);
 
     /*
      * search communicate baudrate.
@@ -132,11 +125,10 @@ private: /* methods */
     uint16_t recvRetString(String &string, uint32_t timeout = 500,bool recv_flag = false);
     
 private: /* data */ 
-    uint32_t _baudrate; 	/*nextion serail baudrate*/
-    const char *_file_name; 	/*nextion tft file name*/
-    Stream *_myFile; 		/*nextion tft file*/
-    uint32_t _undownloadByte; 	/*undownload byte of tft file*/
-    uint32_t _download_baudrate; /*download baudrate*/
+    uint32_t _baudrate; 	        /*nextion serail baudrate*/
+    Stream *_myFile; 		        /*nextion tft file*/
+    uint32_t _undownloadByte; 	        /*undownload byte of tft file*/
+    uint32_t _download_baudrate;        /*download baudrate*/
 };
 /**
  * @}
