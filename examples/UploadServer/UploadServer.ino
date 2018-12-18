@@ -104,15 +104,15 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
 }
 
 void updateNextion() {
-  ESPNexUpload nex_download(fsUploadFile, fsUploadFile.size(), 115200);
+  ESPNexUpload nextion(fsUploadFile, fsUploadFile.size(), 115200);
   
-  if(nex_download.upload()) {
+  if(nextion.upload()) {
     // Redirect the client to the success page
     server.sendHeader("Location","/success.html");
     server.send(303);
   } else {
     // Redirect the client to the success page
-    server.sendHeader("Location","/failure.html?reason=" + nex_download.statusMessage);
+    server.sendHeader("Location","/failure.html?reason=" + nextion.statusMessage);
     server.send(303);
   }
 }
