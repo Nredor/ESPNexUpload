@@ -1,14 +1,22 @@
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
-
 #include <FS.h>
+
+#if defined ESP8266
+  #include <ESP8266WiFi.h>
+  #include <ESP8266WebServer.h>
+  #include <ESP8266mDNS.h>
+#elif defined ESP32
+  #include <WiFi.h>
+  #include <WebServer.h>
+  #include <ESPmDNS.h>
+  #include <SPIFFS.h>
+#endif
+
+#include <WiFiClient.h>
 #include <ESPNexUpload.h>
 
 /*
-  ESP8266 use Software serial RX:5, TX:4 Wemos D1 mini RX:D1, TX:D2 
-  ESP32 use Hardware serial RX:16, TX:17
+  ESP8266 uses Software serial RX:5, TX:4 Wemos D1 mini RX:D1, TX:D2 
+  ESP32 uses Hardware serial RX:16, TX:17
   Serial pins are defined in the ESPNexUpload.cpp file
 */
 
@@ -19,7 +27,11 @@ const char* host = "nextion";
 // Name for updatefile (no need to change, used only internally)
 String updateFileName = "/update.tft";
 
-ESP8266WebServer server(80);
+#if defined ESP8266
+  ESP8266WebServer server(80);
+#elif defined ESP32
+  WebServer server(80);
+#endif
 
 //holds the current upload
 File fsUploadFile;
@@ -43,19 +55,19 @@ String getContentType(String filename){
 
 bool handleFileRead(String path) { // send the right file to the client (if it exists)
   Serial.println("handleFileRead: " + path);
-  if (path.endsWith("/")) path += "index.html";          // If a folder is requested, send the index file
-  String contentType = getContentType(path);             // Get the MIME type
+  if (path.endsWith("/")) path += "index.html";             // If a folder is requested, send the index file
+  String contentType = getContentType(path);                // Get the MIME type
   String pathWithGz = path + ".gz";
-  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) { // If the file exists, either as a compressed archive, or normal
-    if (SPIFFS.exists(pathWithGz))                         // If there's a compressed version available
-      path += ".gz";                                         // Use the compressed verion
-    File file = SPIFFS.open(path, "r");                    // Open the file
-    size_t sent = server.streamFile(file, contentType);    // Send it to the client
-    file.close();                                          // Close the file again
+  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {   // If the file exists, either as a compressed archive, or normal
+    if (SPIFFS.exists(pathWithGz))                          // If there's a compressed version available
+      path += ".gz";                                        // Use the compressed verion
+    File file = SPIFFS.open(path, "r");                     // Open the file
+    size_t sent = server.streamFile(file, contentType);     // Send it to the client
+    file.close();                                           // Close the file again
     Serial.println(String("\tSent file: ") + path);
     return true;
   }
-  Serial.println(String("\tFile Not Found: ") + path);   // If the file doesn't exist, return false
+  Serial.println(String("\tFile Not Found: ") + path);      // If the file doesn't exist, return false
   return false;
 }
 
@@ -69,22 +81,22 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
         
   if(upload.status == UPLOAD_FILE_START){
     Serial.print("handleFileUpload Name: ");
-    Serial.println(fsUploadFile);
+    Serial.println(updateFileName);
     
-    fsUploadFile = SPIFFS.open(fsUploadFile, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
+    fsUploadFile = SPIFFS.open(updateFileName, "w");        // Open the file for writing in SPIFFS (create if it doesn't exist)
   } else if(upload.status == UPLOAD_FILE_WRITE){
     if(fsUploadFile)
-      fsUploadFile.write(upload.buf, upload.currentSize); // Write the received bytes to the file
+      fsUploadFile.write(upload.buf, upload.currentSize);   // Write the received bytes to the file
   } else if(upload.status == UPLOAD_FILE_END){
-    if(fsUploadFile) {                                    // If the file was successfully created
-      fsUploadFile.close();                               // Close the file again
+    if(fsUploadFile) {                                      // If the file was successfully created
+      fsUploadFile.close();                                 // Close the file again
       Serial.print("handleFileUpload Size: ");
       Serial.println(upload.totalSize);
 
       Serial.println("Sending file to display");
-      fsUploadFile = SPIFFS.open(updateFileName, "r");    // open for reading
-      updateNextion();                                    // update nextion display
-      fsUploadFile.close();                               // Close the file again
+      fsUploadFile = SPIFFS.open(updateFileName, "r");      // open for reading
+      updateNextion();                                      // update nextion display
+      fsUploadFile.close();                                 // Close the file again
     } else {
       server.send(500, "text/plain", "500: couldn't create file");
     }
@@ -95,10 +107,12 @@ void updateNextion() {
   ESPNexUpload nex_download(fsUploadFile, fsUploadFile.size(), 115200);
   
   if(nex_download.upload()) {
-    server.sendHeader("Location","/success.html");      // Redirect the client to the success page
+    // Redirect the client to the success page
+    server.sendHeader("Location","/success.html");
     server.send(303);
   } else {
-    server.sendHeader("Location","/failure.html?reason=" + nex_download.statusMessage);      // Redirect the client to the success page
+    // Redirect the client to the success page
+    server.sendHeader("Location","/failure.html?reason=" + nex_download.statusMessage);
     server.send(303);
   }
 }
@@ -108,7 +122,10 @@ void setup(void){
   Serial.print("\n");
   
   Serial.setDebugOutput(true);
-  SPIFFS.begin();  
+  if(!SPIFFS.begin()){
+       Serial.println("An Error has occurred while mounting SPIFFS");
+       return;
+  } 
 
   //WIFI INIT
   Serial.printf("Connecting to %s\n", ssid);
@@ -131,8 +148,8 @@ void setup(void){
   
   //SERVER INIT
   server.on("/", HTTP_POST,                       // if the client posts to the upload page
-    [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
-    handleFileUpload                                    // Receive and save the file
+    [](){ server.send(200); },                    // Send status 200 (OK) to tell the client we are ready to receive
+    handleFileUpload                              // Receive and save the file
   );
 
   //called when the url is not defined here
