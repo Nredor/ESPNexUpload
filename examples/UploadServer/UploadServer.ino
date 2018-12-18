@@ -4,10 +4,13 @@
 #include <ESP8266mDNS.h>
 
 #include <FS.h>
-#include <SoftwareSerial.h>
 #include <ESPNexUpload.h>
 
-SoftwareSerial softSerial(5, 4); /* For Wemos D1 mini RX:D1/5, TX:D2/4 */
+/*
+  ESP8266 use Software serial RX:5, TX:4 Wemos D1 mini RX:D1, TX:D2 
+  ESP32 use Hardware serial RX:16, TX:17
+  Serial pins are defined in the ESPNexUpload.cpp file
+*/
 
 const char* ssid = "your_wlan_ssid";
 const char* password = "your_wlan_password";
@@ -65,26 +68,23 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
   }
         
   if(upload.status == UPLOAD_FILE_START){
-    // String filename = upload.filename;
+    Serial.print("handleFileUpload Name: ");
+    Serial.println(fsUploadFile);
     
-    // Using always same name for updates
-    String filename = updateFileName;
-    
-    //if(!filename.startsWith("/")) filename = "/"+filename;
-    Serial.print("handleFileUpload Name: "); Serial.println(filename);
-    
-    fsUploadFile = SPIFFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
-    filename = String();
+    fsUploadFile = SPIFFS.open(fsUploadFile, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
   } else if(upload.status == UPLOAD_FILE_WRITE){
     if(fsUploadFile)
       fsUploadFile.write(upload.buf, upload.currentSize); // Write the received bytes to the file
   } else if(upload.status == UPLOAD_FILE_END){
     if(fsUploadFile) {                                    // If the file was successfully created
       fsUploadFile.close();                               // Close the file again
-      Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
+      Serial.print("handleFileUpload Size: ");
+      Serial.println(upload.totalSize);
 
       Serial.println("Sending file to display");
-      updateNextion();
+      fsUploadFile = SPIFFS.open(updateFileName, "r");    // open for reading
+      updateNextion();                                    // update nextion display
+      fsUploadFile.close();                               // Close the file again
     } else {
       server.send(500, "text/plain", "500: couldn't create file");
     }
@@ -92,16 +92,13 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
 }
 
 void updateNextion() {
-  ESPNexUpload nex_download(updateFileName.c_str(), 115200, &softSerial);
+  ESPNexUpload nex_download(fsUploadFile, fsUploadFile.size(), 115200);
   
-  String status = "";
-  bool result = nex_download.upload(status);
-  
-  if(result) {
+  if(nex_download.upload()) {
     server.sendHeader("Location","/success.html");      // Redirect the client to the success page
     server.send(303);
   } else {
-    server.sendHeader("Location","/failure.html?reason=" + status);      // Redirect the client to the success page
+    server.sendHeader("Location","/failure.html?reason=" + nex_download.statusMessage);      // Redirect the client to the success page
     server.send(303);
   }
 }
