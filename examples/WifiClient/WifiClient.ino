@@ -18,10 +18,10 @@
   Serial pins are defined in the ESPNexUpload.cpp file
 */
 
-const char* ssid      = "WireDirk";
-const char* password  = "luchtschip";
-const char* host      = "iotappstory.com";
-const char* url       = "/ota/update.tft";
+const char* ssid      = "your_wlan_ssid";
+const char* password  = "your_wlan_password";
+const char* host      = "your_host.com";
+const char* url       = "/update.tft";
 bool updated          = false;
 
 
