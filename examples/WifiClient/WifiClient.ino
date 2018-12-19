@@ -1,8 +1,11 @@
 /*
-    This sketch is based on the default WifiClient example that comes with the Arduino ESP core.
-    And was adapted for use with the ESPNexUpload library.
-    
-    You need to change wifi cred, host(server) and url (file name)
+  This sketch is based on the default WifiClient example that comes with the Arduino ESP core.
+  And was adapted for use with the ESPNexUpload library.
+
+  You need to change wifi cred, host(server) and url (file name)
+
+  Created on: 19 Dec 2018
+  by Onno Dirkzwager
 */
 
 #if defined ESP8266
