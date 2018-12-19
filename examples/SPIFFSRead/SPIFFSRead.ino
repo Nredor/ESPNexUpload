@@ -49,7 +49,7 @@ void loop() {
   if(!updated){
     // open the file. note that only one file can be open at a time,
     // so you have to close this one before opening another.
-    Serial.println("Opening update.tft from SPIFFS");
+    Serial.println("\n\nOpening update.tft from SPIFFS");
     myFile = SPIFFS.open("update.tft", "r");      // open for reading
   
     if(myFile){
