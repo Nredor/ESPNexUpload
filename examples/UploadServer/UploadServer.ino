@@ -91,10 +91,10 @@ bool handleFileUpload(){
     return false;
   }
 
-  Serial.println(F("\nConnect to Nextion display"));
-
 
   if(upload.status == UPLOAD_FILE_START){
+
+    Serial.println(F("\nConnect to Nextion display"));
 
     // Prepair the Nextion display by seting up serial and telling it the file size to expect
     result = nextion.prepairUpload(fileSize);
