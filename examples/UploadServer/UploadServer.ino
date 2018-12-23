@@ -11,7 +11,6 @@
   #include <SPIFFS.h>
 #endif
 
-#include <WiFiClient.h>
 #include <ESPNexUpload.h>
 
 /*
@@ -20,12 +19,16 @@
   Serial pins are defined in the ESPNexUpload.cpp file
 */
 
-const char* ssid = "your_wlan_ssid";
-const char* password = "your_wlan_password";
-const char* host = "nextion";
+const char* ssid      = "your_wlan_ssid";
+const char* password  = "your_wlan_password";
+const char* host      = "nextion";
 
-// Name for updatefile (no need to change, used only internally)
-String updateFileName = "/update.tft";
+// used only internally
+int fileSize  = 0;
+bool result   = true;
+
+// init Nextion object
+ESPNexUpload nextion(115200);
 
 #if defined ESP8266
   ESP8266WebServer server(80);
@@ -33,8 +36,6 @@ String updateFileName = "/update.tft";
   WebServer server(80);
 #endif
 
-//holds the current upload
-File fsUploadFile;
 
 String getContentType(String filename){
   if(server.hasArg("download")) return "application/octet-stream";
@@ -53,7 +54,8 @@ String getContentType(String filename){
   return "text/plain";
 }
 
-bool handleFileRead(String path) { // send the right file to the client (if it exists)
+
+bool handleFileRead(String path){                           // send the right file to the client (if it exists)
   Serial.println("handleFileRead: " + path);
   if (path.endsWith("/")) path += "index.html";             // If a folder is requested, send the index file
   String contentType = getContentType(path);                // Get the MIME type
@@ -71,55 +73,67 @@ bool handleFileRead(String path) { // send the right file to the client (if it e
   return false;
 }
 
-void handleFileUpload(){ // upload a new file to the SPIFFS
+
+// handle the file uploads
+void handleFileUpload(){
   HTTPUpload& upload = server.upload();
 
   // Check if file seems valid nextion tft file
   if(!upload.filename.endsWith(".tft")){
     return server.send(500, "text/plain", "ONLY TFT FILES ALLOWED\n"); 
   }
-        
-  if(upload.status == UPLOAD_FILE_START){
-    Serial.print("handleFileUpload Name: ");
-    Serial.println(updateFileName);
-    
-    fsUploadFile = SPIFFS.open(updateFileName, "w");        // Open the file for writing in SPIFFS (create if it doesn't exist)
-  } else if(upload.status == UPLOAD_FILE_WRITE){
-    if(fsUploadFile)
-      fsUploadFile.write(upload.buf, upload.currentSize);   // Write the received bytes to the file
-  } else if(upload.status == UPLOAD_FILE_END){
-    if(fsUploadFile) {                                      // If the file was successfully created
-      fsUploadFile.close();                                 // Close the file again
-      Serial.print("handleFileUpload Size: ");
-      Serial.println(upload.totalSize);
-
-      Serial.println("Sending file to display");
-      fsUploadFile = SPIFFS.open(updateFileName, "r");      // open for reading
-      updateNextion();                                      // update nextion display
-      fsUploadFile.close();                                 // Close the file again
-    } else {
-      server.send(500, "text/plain", "500: couldn't create file");
-    }
-  }
-}
-
-void updateNextion() {
-  ESPNexUpload nextion(fsUploadFile, fsUploadFile.size(), 115200);
   
-  if(nextion.upload()) {
-    // Redirect the client to the success page
-    server.sendHeader("Location","/success.html");
-    server.send(303);
-  } else {
-    // Redirect the client to the success page
+  if(!result){
+    // Redirect the client to the failure page
     server.sendHeader("Location","/failure.html?reason=" + nextion.statusMessage);
     server.send(303);
+    return false;
+  }
+
+  Serial.println("\nConnect to Nextion display");
+        
+  
+  if(upload.status == UPLOAD_FILE_START){
+
+    // Prepair the Nextion display by seting up serial and telling it the file size to expect
+    result = nextion.prepairUpload(fileSize);
+    
+    if(result){
+      Serial.print("Start upload. File size is: ");
+      Serial.print(fileSize);
+      Serial.println(" bytes");
+    }else{
+      Serial.println(nextion.statusMessage + "\n");
+      return false;
+    }
+    
+  }else if(upload.status == UPLOAD_FILE_WRITE){
+
+    // Write the received bytes to the nextion
+    result = nextion.upload(upload.buf, upload.currentSize);
+    
+    if(result){
+      Serial.print(".");
+    }else{
+      Serial.println(nextion.statusMessage + "\n");
+      return false;
+    }
+  
+  }else if(upload.status == UPLOAD_FILE_END){
+
+    // End the serial connection to the Nextion and softrest it
+    nextion.end();
+    
+    Serial.println("");
+    //Serial.println(nextion.statusMessage);
+    return true;
   }
 }
+
 
 void setup(void){
   Serial.begin(115200);
-  Serial.print("\n");
+  Serial.println("");
   
   Serial.setDebugOutput(true);
   if(!SPIFFS.begin()){
@@ -137,8 +151,7 @@ void setup(void){
     delay(500);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.print("Connected! IP address: ");
+  Serial.print("\nConnected! IP address: ");
   Serial.println(WiFi.localIP());
 
   MDNS.begin(host);
@@ -147,10 +160,23 @@ void setup(void){
   Serial.println(".local");
   
   //SERVER INIT
-  server.on("/", HTTP_POST,                       // if the client posts to the upload page
-    [](){ server.send(200); },                    // Send status 200 (OK) to tell the client we are ready to receive
-    handleFileUpload                              // Receive and save the file
+  server.on("/", HTTP_POST, [](){ 
+    Serial.println("Succesfull upload\n");
+    
+    // Redirect the client to the success page after handeling the file upload
+    server.sendHeader("Location","/success.html");
+    server.send(303);
+    return true;
+  },
+    // Receive and save the file
+    handleFileUpload
   );
+
+  // receive fileSize once a file is selected (Workaround as the file content-length is of by +/- 200 bytes. Known issue: https://github.com/esp8266/Arduino/issues/3787)
+  server.on("/fs", HTTP_POST, [](){
+    fileSize = server.arg("fileSize").toInt();
+    server.send(200, "text/plain", "");
+  });
 
   //called when the url is not defined here
   //use it to load content from SPIFFS
@@ -160,7 +186,7 @@ void setup(void){
   });
 
   server.begin();
-  Serial.println("HTTP server started");
+  Serial.println("\nHTTP server started");
 
 }
  
