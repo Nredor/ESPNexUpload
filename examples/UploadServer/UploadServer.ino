@@ -38,25 +38,25 @@ ESPNexUpload nextion(115200);
 
 
 String getContentType(String filename){
-  if(server.hasArg("download")) return "application/octet-stream";
-  else if(filename.endsWith(".htm")) return "text/html";
-  else if(filename.endsWith(".html")) return "text/html";
-  else if(filename.endsWith(".css")) return "text/css";
-  else if(filename.endsWith(".js")) return "application/javascript";
-  else if(filename.endsWith(".png")) return "image/png";
-  else if(filename.endsWith(".gif")) return "image/gif";
-  else if(filename.endsWith(".jpg")) return "image/jpeg";
-  else if(filename.endsWith(".ico")) return "image/x-icon";
-  else if(filename.endsWith(".xml")) return "text/xml";
-  else if(filename.endsWith(".pdf")) return "application/x-pdf";
-  else if(filename.endsWith(".zip")) return "application/x-zip";
-  else if(filename.endsWith(".gz")) return "application/x-gzip";
-  return "text/plain";
+  if(server.hasArg(F("download"))) return F("application/octet-stream");
+  else if(filename.endsWith(F(".htm"))) return F("text/html");
+  else if(filename.endsWith(".html")) return F("text/html");
+  else if(filename.endsWith(F(".css"))) return F("text/css");
+  else if(filename.endsWith(F(".js"))) return F("application/javascript");
+  else if(filename.endsWith(F(".png"))) return F("image/png");
+  else if(filename.endsWith(F(".gif"))) return F("image/gif");
+  else if(filename.endsWith(F(".jpg"))) return F("image/jpeg");
+  else if(filename.endsWith(F(".ico"))) return F("image/x-icon");
+  else if(filename.endsWith(F(".xml"))) return F("text/xml");
+  else if(filename.endsWith(F(".pdf"))) return F("application/x-pdf");
+  else if(filename.endsWith(F(".zip"))) return F("application/x-zip");
+  else if(filename.endsWith(F(".gz"))) return F("application/x-gzip");
+  return F("text/plain");
 }
 
 
-bool handleFileRead(String path){                           // send the right file to the client (if it exists)
-  Serial.println("handleFileRead: " + path);
+bool handleFileRead(String path) {                          // send the right file to the client (if it exists)
+  Serial.print("handleFileRead: " + path);
   if (path.endsWith("/")) path += "index.html";             // If a folder is requested, send the index file
   String contentType = getContentType(path);                // Get the MIME type
   String pathWithGz = path + ".gz";
@@ -75,33 +75,34 @@ bool handleFileRead(String path){                           // send the right fi
 
 
 // handle the file uploads
-void handleFileUpload(){
+bool handleFileUpload(){
   HTTPUpload& upload = server.upload();
 
   // Check if file seems valid nextion tft file
-  if(!upload.filename.endsWith(".tft")){
-    return server.send(500, "text/plain", "ONLY TFT FILES ALLOWED\n"); 
+  if(!upload.filename.endsWith(F(".tft"))){
+    server.send(500, F("text/plain"), F("ONLY TFT FILES ALLOWED\n"));
+    return false;
   }
   
   if(!result){
     // Redirect the client to the failure page
-    server.sendHeader("Location","/failure.html?reason=" + nextion.statusMessage);
+    server.sendHeader(F("Location"),"/failure.html?reason=" + nextion.statusMessage);
     server.send(303);
     return false;
   }
 
-  Serial.println("\nConnect to Nextion display");
-        
-  
+  Serial.println(F("\nConnect to Nextion display"));
+
+
   if(upload.status == UPLOAD_FILE_START){
 
     // Prepair the Nextion display by seting up serial and telling it the file size to expect
     result = nextion.prepairUpload(fileSize);
     
     if(result){
-      Serial.print("Start upload. File size is: ");
+      Serial.print(F("Start upload. File size is: "));
       Serial.print(fileSize);
-      Serial.println(" bytes");
+      Serial.println(F(" bytes"));
     }else{
       Serial.println(nextion.statusMessage + "\n");
       return false;
@@ -113,7 +114,7 @@ void handleFileUpload(){
     result = nextion.upload(upload.buf, upload.currentSize);
     
     if(result){
-      Serial.print(".");
+      Serial.print(F("."));
     }else{
       Serial.println(nextion.statusMessage + "\n");
       return false;
@@ -131,13 +132,14 @@ void handleFileUpload(){
 }
 
 
+
 void setup(void){
   Serial.begin(115200);
   Serial.println("");
   
-  Serial.setDebugOutput(true);
+  Serial.setDebugOutput(false);
   if(!SPIFFS.begin()){
-       Serial.println("An Error has occurred while mounting SPIFFS");
+       Serial.println(F("An Error has occurred while mounting SPIFFS"));
        return;
   } 
 
@@ -151,20 +153,20 @@ void setup(void){
     delay(500);
     Serial.print(".");
   }
-  Serial.print("\nConnected! IP address: ");
+  Serial.print(F("\nConnected! IP address: "));
   Serial.println(WiFi.localIP());
 
   MDNS.begin(host);
-  Serial.print("http://");
+  Serial.print(F("http://"));
   Serial.print(host);
-  Serial.println(".local");
-  
+  Serial.println(F(".local"));
+
   //SERVER INIT
   server.on("/", HTTP_POST, [](){ 
-    Serial.println("Succesfull upload\n");
-    
+
+    Serial.println(F("Succesfull upload\n"));
     // Redirect the client to the success page after handeling the file upload
-    server.sendHeader("Location","/success.html");
+    server.sendHeader(F("Location"),F("/success.html"));
     server.send(303);
     return true;
   },
@@ -174,20 +176,20 @@ void setup(void){
 
   // receive fileSize once a file is selected (Workaround as the file content-length is of by +/- 200 bytes. Known issue: https://github.com/esp8266/Arduino/issues/3787)
   server.on("/fs", HTTP_POST, [](){
-    fileSize = server.arg("fileSize").toInt();
-    server.send(200, "text/plain", "");
+    fileSize = server.arg(F("fileSize")).toInt();
+    server.send(200, F("text/plain"), "");
   });
 
-  //called when the url is not defined here
-  //use it to load content from SPIFFS
+  // called when the url is not defined here
+  // use it to load content from SPIFFS
   server.onNotFound([](){
     if(!handleFileRead(server.uri()))
-      server.send(404, "text/plain", "FileNotFound");
+      server.send(404, F("text/plain"), F("FileNotFound"));
   });
 
-  server.begin();
-  Serial.println("\nHTTP server started");
 
+  server.begin();
+  Serial.println(F("\nHTTP server started"));
 }
  
 void loop(void){
