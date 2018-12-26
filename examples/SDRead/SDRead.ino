@@ -56,12 +56,15 @@ void loop() {
       Serial.println("File opened. Update Nextion...");
   
       ESPNexUpload nextion(myFile, myFile.size(), 115200);
-      
-      if(nextion.upload()){
-        updated = true;
-        Serial.println("Succesfully updated Nextion!");
-      }else{
-        Serial.println("Error updating Nextion: " + nextion.statusMessage);
+      if(nextion.prepairUpload(myFile.size())){
+        
+        if(nextion.upload(myFile)){
+          updated = true;
+          Serial.println("Succesfully updated Nextion!");
+        }else{
+          Serial.println("Error updating Nextion: " + nextion.statusMessage);
+        }
+        nextion.end();
       }
   
       // close the file:
