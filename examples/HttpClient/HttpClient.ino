@@ -90,13 +90,16 @@ void loop() {
     if(code == 200){
       Serial.println("File received. Update Nextion...");
       
-      ESPNexUpload nextion(client, contentLength, 115200);
-      
-      if(nextion.upload()){
-        updated = true;
-        Serial.println("Succesfully updated Nextion!");
-      }else{
-        Serial.println("Error updating Nextion: " + nextion.statusMessage);
+      ESPNexUpload nextion(115200);
+      if(nextion.prepairUpload(contentLength)){
+        
+        if(nextion.upload(client)){
+          updated = true;
+          Serial.println("Succesfully updated Nextion!");
+        }else{
+          Serial.println("Error updating Nextion: " + nextion.statusMessage);
+        }
+        nextion.end();
       }
     }else{
       // else print http error
