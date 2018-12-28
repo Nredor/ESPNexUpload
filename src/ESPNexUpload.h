@@ -43,6 +43,9 @@
  * @{ 
  */
 
+// callback template definition
+typedef std::function<void(void)> THandlerFunction;
+
 /**
  *
  * Provides the API for nextion to upload the ftf file.
@@ -77,6 +80,13 @@ public: /* methods */
      * @return true if success, false for failure.
      */
 	bool prepairUpload(uint32_t file_size);
+    
+    /**
+     * set Update Progress Callback. (What to do during update progress)
+     *
+     * @return none
+     */
+	void setUpdateProgressCallback(THandlerFunction value);
 
     /**
      * start update tft file to nextion. 
@@ -170,6 +180,8 @@ private: /* data */
     uint32_t _undownloadByte; 	    /* undownload byte of tft file */
     uint32_t _upload_baudrate;      /* upload baudrate */
     uint16_t _sent_packets = 0;     /* upload baudrate */
+	
+	THandlerFunction _updateProgressCallback;
 };
 /**
  * @}
