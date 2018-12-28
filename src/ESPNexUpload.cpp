@@ -236,6 +236,12 @@ bool ESPNexUpload::_setUploadBaudrate(uint32_t baudrate){
 
 
 
+void ESPNexUpload::setUpdateProgressCallback(THandlerFunction value){
+	_updateProgressCallback = value;
+}
+
+
+
 bool ESPNexUpload::upload(const uint8_t *file_buf, size_t buf_size){
 	
     #if defined ESP8266
@@ -243,6 +249,7 @@ bool ESPNexUpload::upload(const uint8_t *file_buf, size_t buf_size){
     #endif
 	
     uint8_t c;
+    uint8_t timeout = 0;
     String string = String("");
 	
     for(uint16_t i = 0; i < buf_size; i++){
@@ -261,6 +268,13 @@ bool ESPNexUpload::upload(const uint8_t *file_buf, size_t buf_size){
 				// reset receive String
 				string = "";
 			}else{
+				if(timeout >= 8){
+					statusMessage = F("serial connection lost");
+					dbSerialPrintln(statusMessage);
+					return false;
+				}
+				
+				timeout++;
 				//Serial.println("Waiting for 0x05");
 			}
 			
@@ -307,7 +321,9 @@ bool ESPNexUpload::upload(Stream &myFile){
 			if(!this->upload(buff, c)){
 				return false;
 			}else{
-				Serial.print(F("."));
+				if(_updateProgressCallback){
+					_updateProgressCallback();
+				}
 			}
 
 			if(_undownloadByte > 0) {
