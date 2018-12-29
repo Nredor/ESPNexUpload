@@ -69,43 +69,50 @@ void loop() {
     Serial.print("connecting to ");
     Serial.println(host);
     
-    WiFiClient client;
     HTTPClient http;
     
     // begin http client
     #if defined ESP8266
       if(!http.begin(host, 80, url)){
     #elif defined ESP32
+      WiFiClient client;
       if(!http.begin(client, String("http://") + host + url)){
     #endif
       Serial.println("connection failed");
       return;
     }
+    
   
     // This will send the (get) request to the server
     int code          = http.GET();
     int contentLength = http.getSize();
-
+      
     // Update the nextion display
     if(code == 200){
       Serial.println("File received. Update Nextion...");
-      
+
       ESPNexUpload nextion(115200);
+
       if(nextion.prepairUpload(contentLength)){
-        
-        if(nextion.upload(client)){
+
+          // Write the received bytes to the nextion
+          result = nextion.upload(client);
+
+          if(!result){
+            Serial.println(nextion.statusMessage + "\n");
+            exit;
+          }
+          
           updated = true;
-          Serial.println("Succesfully updated Nextion!");
-        }else{
-          Serial.println("Error updating Nextion: " + nextion.statusMessage);
-        }
-        nextion.end();
       }
+      nextion.end();
+      Serial.println(nextion.statusMessage);
+
     }else{
       // else print http error
       Serial.println(String("HTTP error: ")+ http.errorToString(code).c_str());
     }
-    
+
     http.end();
     Serial.println("Closing connection\n");
   }
