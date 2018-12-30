@@ -30,15 +30,14 @@ bool updated          = false;
 
 void setup(){
   Serial.begin(115200);
-  delay(10);
+
+  Serial.println("\nRunning WifiClient Example\n");
 
   // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
-  // Explicitly set the ESP8266 to be a WiFi-client, otherwise, it by default,
+  // Explicitly set the ESP to be a WiFi-client, otherwise, it by default,
   // would try to act as both a client and an access-point and could cause
   // network-issues with your other WiFi-devices on your WiFi-network.
   WiFi.mode(WIFI_STA);
@@ -76,8 +75,9 @@ void loop(){
   
     Serial.print("Requesting URL: ");
     Serial.println(url);
+    
   
-    // This will send the request to the server
+    // This will send the (get) request to the server
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                  "Host: " + host + "\r\n" +
                  "Connection: close\r\n\r\n");
@@ -121,17 +121,39 @@ void loop(){
     // Update the nextion display
     if(code == 200){
       Serial.println("File received. Update Nextion...");
-      
+
+      bool result;
+
+      // initialize ESPNexUpload
       ESPNexUpload nextion(115200);
-      if(nextion.prepairUpload(contentLength)){
-        
-        if(nextion.upload(client)){
-          updated = true;
-          Serial.println("Succesfully updated Nextion!");
-        }else{
-          Serial.println("Error updating Nextion: " + nextion.statusMessage);
-        }
-        nextion.end();
+
+      // set callback: What to do / show during upload.... Optional!
+      nextion.setUpdateProgressCallback([](){
+        Serial.print(".");
+      });
+      
+      // prepair upload: setup serial connection, send update command and send the expected update size
+      result = nextion.prepairUpload(contentLength);
+      
+      if(!result){
+          Serial.println("Error: " + nextion.statusMessage);
+      }else{
+          Serial.print(F("Start upload. File size is: "));
+          Serial.print(contentLength);
+          Serial.println(F(" bytes"));
+          
+          // Upload the received byte Stream to the nextion
+          result = nextion.upload(client);
+          
+          if(result){
+            updated = true;
+            Serial.println("\nSuccesfully updated Nextion!");
+          }else{
+            Serial.println("\nError updating Nextion: " + nextion.statusMessage);
+          }
+
+          // end: wait(delay) for the nextion to finish the update process, send nextion reset command and end the serial connection to the nextion
+          nextion.end();
       }
     }
   
