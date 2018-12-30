@@ -10,6 +10,7 @@ This library expects a byte (buffer of Stream), filesize and serial baudrate as 
   ESPNexUpload nextion(115200);
   
   // prepair upload: setup serial connection, send update command and send the expected update size
+  // returns a True or False.
   nextion.prepairUpload(fileSize);
 ```
 
@@ -17,6 +18,7 @@ This library expects a byte (buffer of Stream), filesize and serial baudrate as 
 ```C++
   /* begin buffer loop */
       // Upload the received byte buffer to the nextion
+      // returns a True or False.
       nextion.upload(upload.buf, upload.bufSize);
   /* end buffer loop */
 ```
@@ -26,6 +28,7 @@ The library example "[UploadServer](examples/UploadServer/UploadServer.ino#L100)
 #### When providing a stream
 ```C++
   // Upload the received byte Stream to the nextion
+  // returns a True or False.
   nextion.upload(stream)
 ```
 The library examples "[WifiClient](examples/WifiClient/WifiClient.ino#L128), [HttpClient](examples/HttpClient/HttpClient.ino#L123), [SPIFFSRead](examples/SPIFFSRead/SPIFFSRead.ino#L62) & [SDRead](examples/SDRead/SDRead.ino#L61)" use this approach.
