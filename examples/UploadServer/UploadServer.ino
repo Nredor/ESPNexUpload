@@ -94,7 +94,7 @@ bool handleFileUpload(){
 
   if(upload.status == UPLOAD_FILE_START){
 
-    Serial.println(F("\nConnect to Nextion display"));
+    Serial.println(F("\nFile received. Update Nextion..."));
 
     // Prepair the Nextion display by seting up serial and telling it the file size to expect
     result = nextion.prepairUpload(fileSize);
@@ -135,11 +135,13 @@ bool handleFileUpload(){
 
 void setup(void){
   Serial.begin(115200);
-  Serial.println("");
+  
+  Serial.println(F("\nRunning UploadServer Example\n"));
   
   Serial.setDebugOutput(false);
   if(!SPIFFS.begin()){
        Serial.println(F("An Error has occurred while mounting SPIFFS"));
+       Serial.println(F("Did you upload the data directory that came with this example?"));
        return;
   } 
 
@@ -164,7 +166,7 @@ void setup(void){
   //SERVER INIT
   server.on("/", HTTP_POST, [](){ 
 
-    Serial.println(F("Succesfull upload\n"));
+    Serial.println(F("Succesfully updated Nextion!\n"));
     // Redirect the client to the success page after handeling the file upload
     server.sendHeader(F("Location"),F("/success.html"));
     server.send(303);
