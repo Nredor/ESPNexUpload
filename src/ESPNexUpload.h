@@ -35,6 +35,7 @@
 
 #ifndef __ESPNEXUPLOAD_H__
 #define __ESPNEXUPLOAD_H__
+#include <functional>
 #include <Arduino.h>
 #include <StreamString.h>
 
@@ -53,6 +54,9 @@ typedef std::function<void(void)> THandlerFunction;
 class ESPNexUpload
 {
 public: /* methods */
+	
+	// callback template definition
+	typedef std::function<void(void)> THandlerFunction;
 
     /**
      * Constructor. 
