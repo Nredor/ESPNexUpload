@@ -33,7 +33,8 @@ The library examples "[WifiClient](examples/WifiClient/WifiClient.ino#L128), [Ht
 
 #### End
 ```C++
-  // End the serial connection to the Nextion and softrest it
+  // end: wait(delay) for the nextion to finish the update process,
+  // send nextion reset command and end the serial connection to the nextion
   nextion.end();
 ```
 </br>
