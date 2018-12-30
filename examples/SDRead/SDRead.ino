@@ -32,10 +32,10 @@ bool updated = false;
 
 void setup() {
   Serial.begin(115200);
-  delay(10);
+
+  Serial.println("\nRunning SDRead Example\n");
 
   Serial.print("Initializing SD card...");
-
   if (!SD.begin(4)) {
     Serial.println("initialization failed!");
     return;
@@ -54,17 +54,39 @@ void loop() {
   
     if(myFile){
       Serial.println("File opened. Update Nextion...");
-  
-      ESPNexUpload nextion(myFile, myFile.size(), 115200);
-      if(nextion.prepairUpload(myFile.size())){
-        
-        if(nextion.upload(myFile)){
-          updated = true;
-          Serial.println("Succesfully updated Nextion!");
-        }else{
-          Serial.println("Error updating Nextion: " + nextion.statusMessage);
-        }
-        nextion.end();
+
+      bool result;
+      
+      // initialize ESPNexUpload
+      ESPNexUpload nextion(115200);
+
+      // set callback: What to do / show during upload.... Optional!
+      nextion.setUpdateProgressCallback([](){
+        Serial.print(".");
+      });
+      
+      // prepair upload: setup serial connection, send update command and send the expected update size
+      result = nextion.prepairUpload(myFile.size());
+      
+      if(!result){
+          Serial.println("Error: " + nextion.statusMessage);
+      }else{
+          Serial.print(F("Start upload. File size is: "));
+          Serial.print(myFile.size());
+          Serial.println(F(" bytes"));
+          
+          // Upload the received byte Stream to the nextion
+          result = nextion.upload(myFile);
+          
+          if(result){
+            updated = true;
+            Serial.println("\nSuccesfully updated Nextion!");
+          }else{
+            Serial.println("\nError updating Nextion: " + nextion.statusMessage);
+          }
+
+          // end: wait(delay) for the nextion to finish the update process, send nextion reset command and end the serial connection to the nextion
+          nextion.end();
       }
   
       // close the file:
