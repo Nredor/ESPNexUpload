@@ -34,7 +34,8 @@ bool updated = false;
 
 void setup() {
   Serial.begin(115200);
-  delay(10);
+  
+  Serial.println("\nRunning SPIFSSRead Example\n");
   
   Serial.println("Mounting SPIFFS...");
   if(!SPIFFS.begin()){
@@ -50,21 +51,43 @@ void loop() {
     // open the file. note that only one file can be open at a time,
     // so you have to close this one before opening another.
     Serial.println("\n\nOpening update.tft from SPIFFS");
-    myFile = SPIFFS.open("update.tft", "r");      // open for reading
+    myFile = SPIFFS.open("/update.tft", "r");      // open for reading
   
     if(myFile){
       Serial.println("File opened. Update Nextion...");
-  
+
+      bool result;
+      
+      // initialize ESPNexUpload
       ESPNexUpload nextion(115200);
-      if(nextion.prepairUpload(myFile.size())){
-        
-        if(nextion.upload(myFile)){
-          updated = true;
-          Serial.println("Succesfully updated Nextion!");
-        }else{
-          Serial.println("Error updating Nextion: " + nextion.statusMessage);
-        }
-        nextion.end();
+
+      // set callback: What to do / show during upload.... Optional!
+      nextion.setUpdateProgressCallback([](){
+        Serial.print(".");
+      });
+      
+      // prepair upload: setup serial connection, send update command and send the expected update size
+      result = nextion.prepairUpload(myFile.size());
+      
+      if(!result){
+          Serial.println("Error: " + nextion.statusMessage);
+      }else{
+          Serial.print(F("Start upload. File size is: "));
+          Serial.print(myFile.size());
+          Serial.println(F(" bytes"));
+          
+          // Upload the received byte Stream to the nextion
+          result = nextion.upload(myFile);
+          
+          if(result){
+            updated = true;
+            Serial.println("\nSuccesfully updated Nextion!");
+          }else{
+            Serial.println("\nError updating Nextion: " + nextion.statusMessage);
+          }
+
+          // end: wait(delay) for the nextion to finish the update process, send nextion reset command and end the serial connection to the nextion
+          nextion.end();
       }
   
       // close the file:
