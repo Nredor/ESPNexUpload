@@ -102,7 +102,7 @@ bool ESPNexUpload::connect(){
 
 
 
-bool ESPNexUpload::prepairUpload(uint32_t file_size){
+bool ESPNexUpload::prepareUpload(uint32_t file_size){
     _undownloadByte = file_size;
 	return this->connect();
 }
