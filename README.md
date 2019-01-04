@@ -11,7 +11,7 @@ This library expects a byte (buffer of Stream), filesize and serial baudrate as 
   
   // prepare upload: setup serial connection, send update command and send the expected update size
   // returns a True or False.
-  nextion.prepairUpload(fileSize);
+  nextion.prepareUpload(fileSize);
 ```
 
 #### When providing a buffer
