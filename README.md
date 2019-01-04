@@ -9,7 +9,7 @@ This library expects a byte (buffer of Stream), filesize and serial baudrate as 
   // initialize ESPNexUpload
   ESPNexUpload nextion(115200);
   
-  // prepair upload: setup serial connection, send update command and send the expected update size
+  // prepare upload: setup serial connection, send update command and send the expected update size
   // returns a True or False.
   nextion.prepairUpload(fileSize);
 ```
