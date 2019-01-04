@@ -79,7 +79,7 @@ public: /* methods */
     bool connect();
     
     /**
-     * prepair upload. Set file size & Connect to Nextion over serial
+     * prepare upload. Set file size & Connect to Nextion over serial
      *
      * @return true if success, false for failure.
      */
