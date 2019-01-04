@@ -66,7 +66,7 @@ void loop() {
         Serial.print(".");
       });
       
-      // prepair upload: setup serial connection, send update command and send the expected update size
+      // prepare upload: setup serial connection, send update command and send the expected update size
       result = nextion.prepairUpload(myFile.size());
       
       if(!result){
