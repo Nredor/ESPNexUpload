@@ -133,7 +133,7 @@ void loop(){
       });
       
       // prepare upload: setup serial connection, send update command and send the expected update size
-      result = nextion.prepairUpload(contentLength);
+      result = nextion.prepareUpload(contentLength);
       
       if(!result){
           Serial.println("Error: " + nextion.statusMessage);
