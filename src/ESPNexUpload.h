@@ -83,7 +83,7 @@ public: /* methods */
      *
      * @return true if success, false for failure.
      */
-	bool prepairUpload(uint32_t file_size);
+	bool prepareUpload(uint32_t file_size);
     
     /**
      * set Update Progress Callback. (What to do during update progress)
