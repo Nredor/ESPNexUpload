@@ -3,6 +3,11 @@
  *
  * The definition of class NexUpload. 
  * 
+ * Modified to work with ESP32, HardwareSerial and removed SPIFFS dependency
+ * @author Onno Dirkzwager (onno.dirkzwager@gmail.com)
+ * @date   2018/12/26
+ * @version 0.3.0
+ * 
  * Modified to work with ESP8266 and SoftwareSerial
  * @author Ville Vilpas (psoden@gmail.com)
  * @date   2018/2/3
@@ -30,44 +35,99 @@
 
 #ifndef __ESPNEXUPLOAD_H__
 #define __ESPNEXUPLOAD_H__
+#include <functional>
 #include <Arduino.h>
-#include <FS.h>
-#include <SoftwareSerial.h>
+#include <StreamString.h>
 
 /**
  * @addtogroup CoreAPI 
  * @{ 
  */
 
+// callback template definition
+typedef std::function<void(void)> THandlerFunction;
+
 /**
  *
- * Provides the API for nextion to download the ftf file.
+ * Provides the API for nextion to upload the ftf file.
  */
 class ESPNexUpload
 {
 public: /* methods */
+	
+	// callback template definition
+	typedef std::function<void(void)> THandlerFunction;
 
     /**
      * Constructor. 
      * 
-     * @param file_name - tft file name. 
-     * @param download_baudrate - set download baudrate.
+     * @param uint32_t upload_baudrate - set upload baudrate.
      */
-    ESPNexUpload(const char *file_name,uint32_t download_baudrate, SoftwareSerial *softSerial);
+    ESPNexUpload(uint32_t upload_baudrate);
     
     /**
      * destructor. 
      * 
      */
     ~ESPNexUpload(){}
+	
+    /**
+     * Connect to Nextion over serial
+     *
+     * @return true or false.
+     */
+    bool connect();
     
-    /*
-     * start download.
+    /**
+     * prepare upload. Set file size & Connect to Nextion over serial
      *
      * @return true if success, false for failure.
      */
-    bool upload();
-    bool upload(String &statusMessage);
+	bool prepareUpload(uint32_t file_size);
+    
+    /**
+     * set Update Progress Callback. (What to do during update progress)
+     *
+     * @return none
+     */
+	void setUpdateProgressCallback(THandlerFunction value);
+
+    /**
+     * start update tft file to nextion. 
+     * 
+     * @param const uint8_t *file_buf
+     * @param size_t buf_size
+     * @return true if success, false for failure.
+     */
+    bool upload(const uint8_t *file_buf, size_t buf_size);
+
+    /**
+     * start update tft file to nextion. 
+     * 
+     * @param Stream &myFile
+     * @return true if success, false for failure.
+     */
+    bool upload(Stream &myFile);
+	
+    /**
+     * Send reset command to Nextion over serial
+     *
+     * @return none.
+     */
+	void softReset(void);
+
+    /**
+     * Send reset, end serial, reset _sent_packets & update status message
+     *
+     * @return none.
+     */
+	void end(void);
+	
+	
+	
+public: /* data */ 
+
+    String statusMessage = "";
 
 private: /* methods */
 
@@ -78,13 +138,6 @@ private: /* methods */
      *
      */
     uint16_t _getBaudrate(void);
-    
-    /*
-     * check tft file.
-     *
-     * @return true if success, false for failure. 
-     */
-    bool _checkFile(void);
 
     /*
      * search communicate baudrate.
@@ -102,14 +155,8 @@ private: /* methods */
      *   
      * @return true if success, false for failure. 
      */
-    bool _setDownloadBaudrate(uint32_t baudrate);
-    
-    /**
-     * start dowload tft file to nextion. 
-     * 
-     * @return none. 
-     */
-    bool _downloadTftFile(void);
+    bool _setUploadBaudrate(uint32_t baudrate);
+
     
     /*
      * Send command to Nextion.
@@ -133,12 +180,12 @@ private: /* methods */
     uint16_t recvRetString(String &string, uint32_t timeout = 500,bool recv_flag = false);
     
 private: /* data */ 
-    uint32_t _baudrate; /*nextion serail baudrate*/
-    const char *_file_name; /*nextion tft file name*/
-    File _myFile; /*nextion tft file*/
-    uint32_t _undownloadByte; /*undownload byte of tft file*/
-    uint32_t _download_baudrate; /*download baudrate*/
-    SoftwareSerial *nexSerial;
+    uint32_t _baudrate; 	        /* nextion serail baudrate */
+    uint32_t _undownloadByte; 	    /* undownload byte of tft file */
+    uint32_t _upload_baudrate;      /* upload baudrate */
+    uint16_t _sent_packets = 0;     /* upload baudrate */
+	
+	THandlerFunction _updateProgressCallback;
 };
 /**
  * @}

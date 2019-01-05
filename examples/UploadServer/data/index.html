@@ -7,9 +7,25 @@
 <body>
     <h3>Choose .tft file to upload</h3>
     <form method="post" enctype="multipart/form-data">
-        <input type="file" name="name">
-        <input class="button" type="submit" value="Upload & Update">
+        <input type="file" name="name" onchange="valSize(this)">
+        <input id="button" type="submit" value="Upload & Update" disabled>
     </form>
+    <script>
+      function valSize(file){
+        // get the selected file size and send it to the ESP
+        var fs = file.files[0].size;
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function(){
+          if(this.readyState == 4 && this.status == 200){
+            // ESP received fileSize enable the submit button
+            document.getElementById("button").disabled = false;
+          }
+        };
+        xhttp.open("POST", "/fs", true);
+        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhttp.send("fileSize="+fs);
+      }
+    </script>
     <p>Updating might take a while if you have complex .tft file. Check Nextion display for progress.</p>
 </body>
 </html>
