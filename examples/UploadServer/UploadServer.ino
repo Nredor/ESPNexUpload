@@ -97,7 +97,7 @@ bool handleFileUpload(){
     Serial.println(F("\nFile received. Update Nextion..."));
 
     // Prepare the Nextion display by seting up serial and telling it the file size to expect
-    result = nextion.prepairUpload(fileSize);
+    result = nextion.prepareUpload(fileSize);
     
     if(result){
       Serial.print(F("Start upload. File size is: "));
