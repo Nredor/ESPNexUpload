@@ -52,6 +52,7 @@ You will need to hardreset(power cycle) the display before trying the next updat
 - This seems to no longer be the case. 115200 seems to work fine. 
 
 ## Releases
+- v0.3.1 - Fixed typo in UploadServer example
 - v0.3.0 - ESP32 support and lots of improvements by Onno-Dirkzwager
 - v0.2.0 - Removed unnecessary delays. Works now with latest ESP8266 arduinocore (see notes)
 - v0.1.1 - Updated to comply with Arduino Library manager
