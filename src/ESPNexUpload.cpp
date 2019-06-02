@@ -136,8 +136,10 @@ bool ESPNexUpload::_searchBaudrate(uint32_t baudrate){
     String string = String("");  
     nexSerialBegin(baudrate);
 	
-    this->sendCommand("");
-    this->sendCommand("connect");
+    this->sendCommand("DRAKJHSUYDGBNCJHGJKSHBDNÿÿÿ");
+    this->sendCommand("connectÿÿÿ");
+    this->sendCommand("ÿÿconnectÿÿÿ");
+
     this->recvRetString(string);
     if(string.indexOf(F("comok")) != -1){
         return 1;
