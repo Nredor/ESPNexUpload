@@ -4,6 +4,9 @@ ESP8266 & ESP32 library for uploading .tft files to the Nextion display over ser
 ## Usage
 This library expects a byte (buffer of Stream), filesize and serial baudrate as parameters. The examples provided demonstrate how to use these with Wifi, SPIFFS, SD cards and a local webserver. 
 
+## IMPORTANT
+Due to bugs in older ESP8266 arduino core we recommend using version 2.5.1 or higher.
+
 #### Begin
 ```C++
   // initialize ESPNexUpload
@@ -52,6 +55,7 @@ You will need to hardreset(power cycle) the display before trying the next updat
 - This seems to no longer be the case. 115200 seems to work fine. 
 
 ## Releases
+- v0.4.0 - Fixed combatibility issues with some displays
 - v0.3.1 - Fixed typo in UploadServer example
 - v0.3.0 - ESP32 support and lots of improvements by Onno-Dirkzwager
 - v0.2.0 - Removed unnecessary delays. Works now with latest ESP8266 arduinocore (see notes)
