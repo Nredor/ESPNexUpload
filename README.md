@@ -53,6 +53,7 @@ The library examples "[WifiClient](examples/WifiClient/WifiClient.ino#L128), [Ht
 </br>
 
 ## Releases
+- v0.5.0 - Improved implementation of the nextion upload v1.1 protocol
 - v0.4.0 - Fixed combatibility issues with some displays
 - v0.3.1 - Fixed typo in UploadServer example
 - v0.3.0 - ESP32 support and lots of improvements by Onno-Dirkzwager
