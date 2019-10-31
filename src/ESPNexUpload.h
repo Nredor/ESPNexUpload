@@ -2,7 +2,17 @@
  * @file NexUpload.h
  *
  * The definition of class NexUpload. 
+ *
+ * Stability improvement, Nextion display doesn’t freeze after the seconds 4096 trance of firmware bytes. 
+ * Now the firmware upload process is stabled without the need of a hard Display power off-on intervention. 
+ * Undocumented features (not mentioned in nextion-hmi-upload-protocol-v1-1 specification) are added. 
+ * This implementation is based in on a reverse engineering with a UART logic analyser between 
+ * the Nextion editor v0.58 and a NX4024T032_011R Display.
  * 
+ * @author Machiel Mastenbroek (machiel.mastenbroek@gmail.com)
+ * @date   2019/10/25
+ * @version 0.5.0
+ *
  * Modified to work with ESP32, HardwareSerial and removed SPIFFS dependency
  * @author Onno Dirkzwager (onno.dirkzwager@gmail.com)
  * @date   2018/12/26
@@ -155,17 +165,69 @@ private: /* methods */
      *   
      * @return true if success, false for failure. 
      */
-    bool _setUploadBaudrate(uint32_t baudrate);
+    bool _setPrepareForFirmwareUpdate(uint32_t baudrate);
 
+    /*
+     * set Nextion running mode.
+     *
+	 * Undocumented feature of the Nextion protocol.
+	 * It's used by the 'upload to Nextion device' feature of the Nextion Editor V0.58
+	 * 
+	 * The nextion display doesn't send any response
+	 *
+     */
+    void _setRunningMode(void);
+
+    /*
+     * Test UART nextion connection availability 
+     *
+	 * @param input  - echo string,
+	 *
+	 * @return true when the 'echo string' that is send is equal to the received string
+	 * 
+	 * This test is used by the 'upload to Nextion device' feature of the Nextion Editor V0.58
+	 *
+     */
+    bool _echoTest(String input);
     
+    /*
+     * This function get the sleep and dim value from the Nextion display.
+     *
+	 * If sleep = 1 meaning: sleep is enabled
+     *	            action : sleep will be disabled
+	 * If dim = 0,  meaning: the display backlight is turned off
+	 *              action : dim will be set to 100 (percent)
+	 *
+     */
+    bool _handlingSleepAndDim(void);
+	
+    /*
+     * This function (debug) print the Nextion response to a human readable string
+     *
+	 * @param esp_request  - true:  request  message from esp     to nextion
+	 *                       false: response message from nextion to esp
+	 *
+	 * @param input - string to print
+	 *
+     */
+    void _printSerialData(bool esp_request, String input);
+	
+    /*
+     * This function print a prefix debug line
+	 *
+	 * @param line: optional debug/ info line
+     */
+    void _printInfoLine(String line = "");
+	
     /*
      * Send command to Nextion.
      *
-     * @param cmd - the string of command.
+     * @param cmd  - the string of command.
+	 * @param tail - end the string with tripple 0xFF byte
      *
      * @return none.
      */
-    void sendCommand(const char* cmd);
+    void sendCommand(const char* cmd, bool tail = true);
 
     /*
      * Receive string data. 
