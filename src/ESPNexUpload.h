@@ -1,7 +1,14 @@
 /**
  * @file NexUpload.h
- *
  * The definition of class NexUpload. 
+ * 
+ * 
+ * 1 - BugFix when display baudrate is diffrent from initial ESP baudrate
+ * 2 - Improved debug information
+ * 3 - Make delay commands dependent on the baudrate
+ * @author Machiel Mastenbroek (machiel.mastenbroek@gmail.com)
+ * @date   2019/11/04
+ * @version 0.5.5
  *
  * Stability improvement, Nextion display doesn’t freeze after the seconds 4096 trance of firmware bytes. 
  * Now the firmware upload process is stabled without the need of a hard Display power off-on intervention. 
@@ -10,7 +17,7 @@
  * the Nextion editor v0.58 and a NX4024T032_011R Display.
  * 
  * @author Machiel Mastenbroek (machiel.mastenbroek@gmail.com)
- * @date   2019/10/25
+ * @date   2019/10/24
  * @version 0.5.0
  *
  * Modified to work with ESP32, HardwareSerial and removed SPIFFS dependency
@@ -165,7 +172,7 @@ private: /* methods */
      *   
      * @return true if success, false for failure. 
      */
-    bool _setPrepareForFirmwareUpdate(uint32_t baudrate);
+    bool _setPrepareForFirmwareUpdate(uint32_t upload_baudrate);
 
     /*
      * set Nextion running mode.
@@ -222,12 +229,13 @@ private: /* methods */
     /*
      * Send command to Nextion.
      *
-     * @param cmd  - the string of command.
-	 * @param tail - end the string with tripple 0xFF byte
+     * @param cmd       - the string of command.
+	 * @param tail      - end the string with tripple 0xFF byte
+	 * @param null_head - start the string with a single 0x00 byte
      *
      * @return none.
      */
-    void sendCommand(const char* cmd, bool tail = true);
+    void sendCommand(const char* cmd, bool tail = true, bool null_head = false);
 
     /*
      * Receive string data. 
@@ -240,6 +248,18 @@ private: /* methods */
      *
      */   
     uint16_t recvRetString(String &string, uint32_t timeout = 500,bool recv_flag = false);
+
+    /*
+     * 
+     * This function calculates the transmission time, the transmission time 
+     * is based on the length of the message and the baudrate.
+     * 
+     * @param message - only used to determine the length of the message 
+     *
+     * @return time in us length of string buffer.
+     *
+     */
+    uint32_t calculateTransmissionTimeMs(String message);
     
 private: /* data */ 
     uint32_t _baudrate; 	        /* nextion serail baudrate */
