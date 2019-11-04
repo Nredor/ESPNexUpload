@@ -133,6 +133,7 @@ uint16_t ESPNexUpload::_getBaudrate(void){
             _printInfoLine(F("baudrate determined"));
             break;
         }
+		delay(1500); // wait for 1500 ms
     }
     return _baudrate;
 }
@@ -151,41 +152,58 @@ bool ESPNexUpload::_searchBaudrate(uint32_t baudrate){
 	dbSerialPrintln(baudrate);
 
     nexSerialBegin(baudrate);
-	_printInfoLine(F("baudrate established, try to connect"));
+	_printInfoLine(F("ESP baudrate established, try to connect to display"));
 	const char _nextion_FF_FF[3] = {0xFF, 0xFF, 0x00};
 
     this->sendCommand("DRAKJHSUYDGBNCJHGJKSHBDN");
-	delay(15); // based on serial analyser from Nextion editor V0.58 to Nextion display NX4024T032_011R
+	this->sendCommand("",true,true); // 0x00 0xFF 0xFF 0xFF
 
-	this->sendCommand(0x00);
-	this->sendCommand("connect");
+	this->recvRetString(response);
+	if(response[0] != 0x1A){
+		_printInfoLine(F("first indication that baudrate is wrong"));
+	}else {
+		_printInfoLine(F("first respone from display, first indication that baudrate is correct"));
+	}
+	
+	this->sendCommand("connect"); // first connect attempt
 	
     this->recvRetString(response);
     if(response.indexOf(F("comok")) == -1){
-        return 0;
-    } 
+		_printInfoLine(F("display doesn't accept the first connect request"));
+    } else {
+		_printInfoLine(F("display accept the first connect request"));
+	}
 
 	response = String("");  
 	delay(110); // based on serial analyser from Nextion editor V0.58 to Nextion display NX4024T032_011R
 	this->sendCommand(_nextion_FF_FF, false);
 
-	this->sendCommand("connect");
+	this->sendCommand("connect"); // second attempt
 	this->recvRetString(response);
-	if(response.indexOf(F("comok")) == -1){
-        return 0;
-    } 
+	if(response.indexOf(F("comok")) == -1 && response[0] != 0x1A){
+		_printInfoLine(F("display doesn't accept the second connect request"));
+		_printInfoLine(F("conclusion, wrong baudrate"));
+		return 0;
+	}else {
+		_printInfoLine(F("display accept the second connect request"));
+		_printInfoLine(F("conclusion, correct baudrate"));
+	}
 
 	return 1;
 }
 
 
 
-void ESPNexUpload::sendCommand(const char* cmd, bool tail){
+void ESPNexUpload::sendCommand(const char* cmd, bool tail, bool null_head){
 
     #if defined ESP8266
         yield();
     #endif
-
+    
+	if(null_head) {
+		nexSerial.write(0x00);
+	}
+	
     while(nexSerial.available()){
         nexSerial.read();
     }
@@ -196,7 +214,6 @@ void ESPNexUpload::sendCommand(const char* cmd, bool tail){
 		nexSerial.write(0xFF);
 		nexSerial.write(0xFF);
 	}
-
 	_printSerialData(true,cmd);
 }
 
@@ -214,6 +231,9 @@ uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout,bool rec
     long start;
     bool exit_flag = false;
 	bool ff_flag = false;
+	if(timeout != 500)
+		_printInfoLine("timeout setting serial read: " + String(timeout));
+
     start = millis();
 
     while (millis() - start <= timeout){
@@ -227,9 +247,11 @@ uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout,bool rec
 
 			if (c == 0xFF)
 				nr_of_FF_bytes++;
-			else
+			else {
 				nr_of_FF_bytes=0;
-
+				ff_flag = false;
+			}
+			
 			if(nr_of_FF_bytes >= 3)
 				ff_flag = true;
 			
@@ -248,8 +270,8 @@ uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout,bool rec
 	_printSerialData(false,response);
 
 	// if the exit flag and the ff flag are both not found, than there is a timeout 
-	if(!exit_flag && !ff_flag)
-		_printInfoLine(F("recvRetString: timeout"));
+	// if(!exit_flag && !ff_flag)
+		// _printInfoLine(F("recvRetString: timeout"));
 
 	if(ff_flag)
 		response = response.substring(0, response.length() -3); // Remove last 3 0xFF 
@@ -260,7 +282,7 @@ uint16_t ESPNexUpload::recvRetString(String &response, uint32_t timeout,bool rec
 
 
 
-bool ESPNexUpload::_setPrepareForFirmwareUpdate(uint32_t baudrate){
+bool ESPNexUpload::_setPrepareForFirmwareUpdate(uint32_t upload_baudrate){
 
     #if defined ESP8266
         yield();
@@ -276,13 +298,24 @@ bool ESPNexUpload::_setPrepareForFirmwareUpdate(uint32_t baudrate){
 	this->recvRetString(response, 800,true); // normal response time is 400ms
 
     String filesize_str = String(_undownloadByte,10);
-    String baudrate_str = String(baudrate);
+    String baudrate_str = String(upload_baudrate);
     cmd = "whmi-wri " + filesize_str + "," + baudrate_str + ",0";
 
 	this->sendCommand(cmd.c_str());
 
-    this->recvRetString(response, 800,true); // normal response time is 400ms
+	// Without flush, the whmi command will NOT transmitted by the ESP in the current baudrate
+	// because switching to another baudrate (nexSerialBegin command) has an higher prio.
+	// The ESP will first jump to the new 'upload_baudrate' and than process the serial 'transmit buffer'
+	// The flush command forced the ESP to wait until the 'transmit buffer' is empty
+	nexSerial.flush();
+	
+	nexSerialBegin(upload_baudrate);
+    _printInfoLine(F("changing upload baudrate..."));
+    _printInfoLine(String(upload_baudrate));
 
+	this->recvRetString(response, 800,true); // normal response time is 400ms
+	
+	// The Nextion display will, if it's ready to accept data, send a 0x05 byte.
     if(response.indexOf(0x05) != -1)
     { 
 		_printInfoLine(F("preparation for firmware update done"));
@@ -427,7 +460,7 @@ void ESPNexUpload::_setRunningMode(void) {
 	delay (100);
 	cmd = F("runmod=2");
 	this->sendCommand(cmd.c_str());
-	delay(12);
+	delay(60);
 }
 
 
@@ -439,7 +472,8 @@ bool ESPNexUpload::_echoTest(String input) {
 	cmd = "print \"" + input + "\"";
 	this->sendCommand(cmd.c_str());
 
-	this->recvRetString(response,10);
+	uint32_t duration_ms = calculateTransmissionTimeMs(cmd) * 2 + 10; // times 2  (send + receive) and 10 ms extra
+	this->recvRetString(response,duration_ms); 
 
 	return (response.indexOf(input) != -1);
 }
@@ -545,7 +579,26 @@ void ESPNexUpload::_printSerialData(bool esp_request, String input){
 	dbSerialPrintln();
 }
 
+uint32_t ESPNexUpload::calculateTransmissionTimeMs(String message){
+	// In general, 1 second (s) = 1000 (10^-3) millisecond (ms) or 
+	//             1 second (s) = 1000 000 (10^-6) microsecond (us). 
+	// To calculate how much microsecond one BIT of data takes with a certain baudrate you have to divide 
+	// the baudrate by one second. 
+	// For example 9600 baud = 1000 000 us / 9600 ≈ 104 us
+	// The time to transmit one DATA byte (if we use default UART modulation) takes 10 bits. 
+	// 8 DATA bits and one START and one STOP bit makes 10 bits. 
+	// In this example (9600 baud) a byte will take 1041 us to send or receive. 
+	// Multiply this value by the length of the message (number of bytes) and the total transmit/ receive time
+	// is calculated.
 
+    uint32_t duration_one_byte_us = 10000000 / _baudrate; // 1000 000 * 10 bits / baudrate
+    uint16_t nr_of_bytes = message.length() + 3;          // 3 times 0xFF byte
+    uint32_t duration_message_us = nr_of_bytes * duration_one_byte_us;
+    uint32_t return_value_ms = duration_message_us / 1000;
+
+	_printInfoLine("calculated transmission time: " + String(return_value_ms) + " ms");
+	return return_value_ms;
+}
 
 void ESPNexUpload::_printInfoLine(String line){
 	dbSerialPrint(F("Status     info: "));
