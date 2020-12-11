@@ -201,7 +201,7 @@ void ESPNexUpload::sendCommand(const char* cmd, bool tail, bool null_head){
     #endif
     
 	if(null_head) {
-		nexSerial.write(0x00);
+		nexSerial.write((byte)0x00);
 	}
 	
     while(nexSerial.available()){
@@ -210,9 +210,9 @@ void ESPNexUpload::sendCommand(const char* cmd, bool tail, bool null_head){
 
     nexSerial.print(cmd);
     if(tail) {
-		nexSerial.write(0xFF);
-		nexSerial.write(0xFF);
-		nexSerial.write(0xFF);
+		nexSerial.write((byte)0xFF);
+		nexSerial.write((byte)0xFF);
+		nexSerial.write((byte)0xFF);
 	}
 	_printSerialData(true,cmd);
 }
