@@ -36,7 +36,7 @@ void setup() {
   Serial.println("\nRunning SDRead Example\n");
 
   Serial.print("Initializing SD card...");
-  if (!SD.begin(4)) {
+  if (!SD.begin()) {
     Serial.println("initialization failed!");
     return;
   }
@@ -50,7 +50,7 @@ void loop() {
     // open the file. note that only one file can be open at a time,
     // so you have to close this one before opening another.
     Serial.println("Opening update.tft from SD card");
-    myFile = SD.open("update.tft", FILE_READ);
+    myFile = SD.open("/update.tft", FILE_READ);
   
     if(myFile){
       Serial.println("File opened. Update Nextion...");
