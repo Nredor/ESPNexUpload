@@ -53,6 +53,7 @@ The library examples "[WifiClient](examples/WifiClient/WifiClient.ino#L128), [Ht
 </br>
 
 ## Releases
+- v0.5.7 - Merged two small changes
 - v0.5.6 - Forgot to update library.properties version for Arduino Library manager, fixed here.
 - v0.5.5 - Bug fixes regarding baud rates and improvements for debug messages
 - v0.5.0 - Improved implementation of the nextion upload v1.1 protocol
