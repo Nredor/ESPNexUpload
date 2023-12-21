@@ -7,7 +7,7 @@ ESP8266 & ESP32 library for uploading .tft files to the Nextion display over ser
 ESP8266: Due to bugs in older arduino cores we recommend using version 2.5.1 or higher.
 ESP32: Latest arduino core should work fine
 
-### Hardresets
+### Hardresets (should be no need for this after library version 0.5.5)
 If the nextion displays an error: Failed to update, Connection lost, Incompatible upload etc.
 You will need to hardreset(power cycle) the display before trying the next update. This might be an issue if you are updating from a remote location. You should therefore consider adding a transistor or relay to your nextion power lines.
 
